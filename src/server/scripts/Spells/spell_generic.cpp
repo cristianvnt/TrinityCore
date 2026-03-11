@@ -2033,6 +2033,47 @@ class spell_gen_hate_to_75 : public SpellScript
     }
 };
 
+// 58838 - Inherit Master's Threat List
+class spell_gen_inherit_masters_threat_list : public SpellScript
+{
+    void FilterTargets(std::list<WorldObject*>& targets)
+    {
+        Unit* caster = GetCaster();
+        Unit* owner = caster->GetCharmerOrOwner();
+        if (!owner)
+        {
+            targets.clear();
+            return;
+        }
+
+        targets.remove_if([owner](WorldObject* obj)
+        {
+            Unit* unit = obj->ToUnit();
+            if (!unit)
+                return true;
+            return !unit->GetThreatManager().IsThreatenedBy(owner, true);
+        });
+    }
+
+    void HandleDummy(SpellEffIndex /*effIndex*/)
+    {
+        Unit* caster = GetCaster();
+        Unit* owner = caster->GetCharmerOrOwner();
+        Unit* target = GetHitUnit();
+        if (!owner || !target)
+            return;
+
+        float threat = target->GetThreatManager().GetThreat(owner, true);
+        caster->GetThreatManager().AddThreat(target, threat);
+    }
+
+    void Register() override
+    {
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_gen_inherit_masters_threat_list::FilterTargets, EFFECT_0, TARGET_UNIT_DEST_AREA_ENTRY);
+        OnEffectHitTarget += SpellEffectFn(spell_gen_inherit_masters_threat_list::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
 enum Interrupt
 {
     SPELL_GEN_THROW_INTERRUPT           = 32747
@@ -5686,6 +5727,7 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_gen_hate_to_zero_caster_target);
     RegisterSpellScript(spell_gen_hate_to_50);
     RegisterSpellScript(spell_gen_hate_to_75);
+    RegisterSpellScript(spell_gen_inherit_masters_threat_list);
     RegisterSpellScriptWithArgs(spell_gen_increase_stats_buff, "spell_pal_blessing_of_kings");
     RegisterSpellScriptWithArgs(spell_gen_increase_stats_buff, "spell_pal_blessing_of_might");
     RegisterSpellScriptWithArgs(spell_gen_increase_stats_buff, "spell_dru_mark_of_the_wild");

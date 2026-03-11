@@ -91,9 +91,21 @@ struct npc_pet_pri_shadowfiend_mindbender : public PetAI
     }
 };
 
+// 250373 - Spectral Illusion
+struct npc_pet_pri_spectral_illusion : public PassiveAI
+{
+    npc_pet_pri_spectral_illusion(Creature* creature) : PassiveAI(creature) { }
+
+    void JustAppeared() override
+    {
+        me->SetControlled(true, UNIT_STATE_ROOT);
+    }
+};
+
 void AddSC_priest_pet_scripts()
 {
     RegisterCreatureAI(npc_pet_pri_divine_image);
     RegisterCreatureAI(npc_pet_pri_lightwell);
     RegisterCreatureAI(npc_pet_pri_shadowfiend_mindbender);
+    RegisterCreatureAI(npc_pet_pri_spectral_illusion);
 }

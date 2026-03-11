@@ -4301,6 +4301,50 @@ class spell_pri_sins_of_the_many : public AuraScript
     }
 };
 
+// 1250385 - Spectral Illusion (Aura)
+class spell_pri_spectral_illusion_aura : public AuraScript
+{
+    enum Clone
+    {
+        SPELL_CLONE_ME = 45204,
+        SPELL_COPY_OFFHAND = 45205,
+        SPELL_COPY_OFFHAND_AURA = 45206,
+        SPELL_COPY_WEAPON = 41055,
+        SPELL_COPY_WEAPON_AURA = 41054,
+        SPELL_INHERIT_MASTERS_THREAT_LIST = 58838,
+        SPELL_FADE = 1251208
+    };
+    static constexpr std::array<uint32, 4> ToCloneIds{ SPELL_COPY_OFFHAND, SPELL_COPY_OFFHAND_AURA, SPELL_COPY_WEAPON, SPELL_COPY_WEAPON_AURA };
+
+    void HandleAfterApply(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
+    {
+        Unit* caster = GetTarget();
+
+        Unit* illusion = [&]() -> Unit*
+        {
+            for (Unit* summon : caster->m_Controlled)
+                if (summon->GetEntry() == 250373)
+                    return summon;
+            return nullptr;
+        }();
+
+        if (!illusion)
+            return;
+
+        caster->CastSpell(illusion, SPELL_CLONE_ME, TRIGGERED_IGNORE_CAST_IN_PROGRESS);
+        illusion->CastSpell(nullptr, SPELL_INHERIT_MASTERS_THREAT_LIST, CastSpellExtraArgs(TRIGGERED_IGNORE_CAST_IN_PROGRESS).SetTriggeringAura(aurEff));
+        illusion->CastSpell(illusion, SPELL_FADE, CastSpellExtraArgs(TRIGGERED_IGNORE_CAST_IN_PROGRESS).SetTriggeringAura(aurEff));
+
+        for (uint32 id : ToCloneIds)
+            illusion->CastSpell(illusion, id, true);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(spell_pri_spectral_illusion_aura::HandleAfterApply, EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 // 20711 - Spirit of Redemption
 class spell_pri_spirit_of_redemption : public AuraScript
 {
@@ -5516,6 +5560,7 @@ void AddSC_priest_spell_scripts()
     RegisterSpellScript(spell_pri_schism);
     RegisterSpellScript(spell_pri_searing_light);
     RegisterSpellScript(spell_pri_sins_of_the_many);
+    RegisterSpellScript(spell_pri_spectral_illusion_aura);
     RegisterSpellScript(spell_pri_spirit_of_redemption);
     RegisterSpellScript(spell_pri_shadow_covenant);
     RegisterSpellScript(spell_pri_shadow_mend);
